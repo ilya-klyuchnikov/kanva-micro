@@ -1,0 +1,14 @@
+<component name="libraryTable">
+  <library name="asm-debug-all-4.2">
+    <ANNOTATIONS>
+      <root url="file://$PROJECT_DIR$/lib/annotations" />
+    </ANNOTATIONS>
+    <CLASSES>
+      <root url="jar://$PROJECT_DIR$/lib/asm-debug-all-4.2.jar!/" />
+    </CLASSES>
+    <JAVADOC />
+    <SOURCES>
+      <root url="jar://$PROJECT_DIR$/lib/asm-debug-all-4.2-sources.jar!/" />
+    </SOURCES>
+  </library>
+</component>
