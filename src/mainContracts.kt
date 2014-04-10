@@ -68,7 +68,7 @@ fun result(method: Method, contract: SingleContract): String =
         (contract.result == BoolResult.TRUE) && (method.getReturnType().getSort() != Type.BOOLEAN) ->
             "1"
         (contract.result == BoolResult.FALSE) && (method.getReturnType().getSort() == Type.BOOLEAN) ->
-            "true"
+            "false"
         (contract.result == BoolResult.FALSE) && (method.getReturnType().getSort() != Type.BOOLEAN) ->
             "0"
         else -> "???"
