@@ -1,0 +1,11 @@
+<root>
+    <item name='org.objectweb.asm.signature.SignatureVisitor void visitClassType(java.lang.String) 0'>
+        <annotation name='org.jetbrains.annotations.NotNull'/>
+    </item>
+    <item name='org.objectweb.asm.signature.SignatureVisitor void visitInnerClassType(java.lang.String) 0'>
+        <annotation name='org.jetbrains.annotations.NotNull'/>
+    </item>
+    <item name='org.objectweb.asm.signature.SignatureVisitor void visitTypeVariable(java.lang.String) 0'>
+        <annotation name='org.jetbrains.annotations.NotNull'/>
+    </item>
+</root>
