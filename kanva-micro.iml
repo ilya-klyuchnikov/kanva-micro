@@ -21,6 +21,7 @@
         <SOURCES />
       </library>
     </orderEntry>
+    <orderEntry type="library" scope="TEST" name="commons-lang3-3.3.2" level="project" />
   </component>
 </module>
 
