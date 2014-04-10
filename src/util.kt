@@ -64,6 +64,14 @@ fun Int.isReturn() =
         this == Opcodes.ARETURN ||
         this == Opcodes.RETURN
 
+fun Int.isNotVoidReturn() =
+        this == Opcodes.IRETURN ||
+        this == Opcodes.LRETURN ||
+        this == Opcodes.FRETURN ||
+        this == Opcodes.DRETURN ||
+        this == Opcodes.ARETURN
+
+
 fun Int.isThrow() =
         this == Opcodes.ATHROW
 

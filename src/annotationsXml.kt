@@ -55,7 +55,7 @@ private fun Field.toFieldAnnotationKey() : String {
     return "${declaringClass.canonicalName} ${id.fieldName}"
 }
 
-private fun Method.toAnnotationKeyPrefix(): String {
+fun Method.toAnnotationKeyPrefix(): String {
     return declaringClass.canonicalName + " " +
     getAnnotationKeyReturnTypeString() +
     getMethodNameAccountingForConstructor() + parameterTypesString()
