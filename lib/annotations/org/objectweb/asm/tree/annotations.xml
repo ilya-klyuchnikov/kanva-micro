@@ -1,0 +1,27 @@
+<root>
+    <item name='org.objectweb.asm.tree.FieldInsnNode name'>
+        <annotation name='org.jetbrains.annotations.NotNull'/>
+    </item>
+    <item name='org.objectweb.asm.tree.FieldInsnNode owner'>
+        <annotation name='org.jetbrains.annotations.NotNull'/>
+    </item>
+    <item name='org.objectweb.asm.tree.InsnList org.objectweb.asm.tree.AbstractInsnNode get(int)'>
+        <annotation name='org.jetbrains.annotations.NotNull'/>
+    </item>
+    <item name='org.objectweb.asm.tree.MethodInsnNode desc'>
+        <annotation name='org.jetbrains.annotations.NotNull'/>
+    </item>
+    <item name='org.objectweb.asm.tree.MethodNode desc'>
+        <annotation name='org.jetbrains.annotations.NotNull'/>
+    </item>
+    <item name='org.objectweb.asm.tree.MethodNode instructions'>
+        <annotation name='org.jetbrains.annotations.NotNull'/>
+    </item>
+    <item name='org.objectweb.asm.tree.MethodNode name'>
+        <annotation name='org.jetbrains.annotations.NotNull'/>
+    </item>
+    <item name='org.objectweb.asm.tree.TryCatchBlockNode'>
+        <annotation name='org.jetbrains.annotations.NotNull'/>
+        <annotation name='java.lang.annotation.Deprecated'/>
+    </item>
+</root>
