@@ -1,4 +1,4 @@
-package kanva.main
+package kanva.params
 
 import java.io.File
 
