@@ -38,12 +38,13 @@ class TooManyIterationsException(): Exception()
 
 class NullParamSpeculator(val methodContext: MethodContext, val paramIndex: Int) {
     val method = methodContext.method
-    val cfg = methodContext.cfg
+    val transitions = methodContext.cfg.transitions
+    val exceptionTransitions = methodContext.cfg.exceptionTransitions
     val methodNode = methodContext.methodNode
     val interpreter = ParamSpyInterpreter(methodContext.ctx)
 
     fun shouldBeNotNull(): Boolean =
-        cfg.nodes.notEmpty && when (speculate()) {
+        transitions.nodes.notEmpty && when (speculate()) {
             Result.NPE -> true
             else -> false
         }
@@ -70,11 +71,23 @@ class NullParamSpeculator(val methodContext: MethodContext, val paramIndex: Int)
         val frame = conf.frame
         if (history.any{it.insnIndex == insnIndex && isInstanceOf(frame, it.frame)})
             return Result.CYCLE
-        val cfgNode = cfg.findNode(insnIndex)!!
+        val cfgNode = transitions.findNode(insnIndex)!!
         val insnNode = methodNode.instructions[insnIndex]
         val (nextFrame, dereferencedHere) = execute(frame, insnNode)
-        val nextConfs =
-                cfgNode.successors.map{Configuration(it.insnIndex, nextFrame)}
+        val nextConfs = cfgNode.successors.map { node ->
+            val nextInsnIndex = node.insnIndex
+            val excType = exceptionTransitions[insnIndex to nextInsnIndex]
+            val nextFrame1 =
+                    if (excType == null)
+                        nextFrame
+                    else {
+                        val handler = Frame(frame)
+                        handler.clearStack()
+                        handler.push(BasicValue(Type.getType(excType)))
+                        handler
+                    }
+            Configuration(nextInsnIndex, nextFrame1)
+        }
         val nextHistory = history + conf
         val dereferenced = alreadyDereferenced || dereferencedHere
         val opCode = insnNode.getOpcode()
