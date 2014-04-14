@@ -92,7 +92,7 @@ class NullParamSpeculator(val methodContext: MethodContext, val paramIndex: Int)
         val dereferenced = alreadyDereferenced || dereferencedHere
         val opCode = insnNode.getOpcode()
         return when {
-            opCode.isReturn() && dereferenced ->
+            dereferenced ->
                 Result.NPE
             opCode.isReturn() ->
                 Result.RETURN
