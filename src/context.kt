@@ -12,11 +12,11 @@ import kanva.index.*
 import kanva.annotations.*
 import kanva.annotations.xml.*
 import kanva.declarations.*
-import kanva.graphs.*
 import kanva.util.*
+import kanva.analysis.*
 
 class Context(val source: ClassSource, val index: DeclarationIndexImpl, val annotations: Annotations<Nullability>)
-class MethodContext(val ctx: Context, val cfg: Graph<Int>, val method: Method, val methodNode: MethodNode)
+class MethodContext(val ctx: Context, val cfg: ControlFlowGraph, val method: Method, val methodNode: MethodNode)
 
 fun Context(classSource: ClassSource, annotationDirs: Collection<File>): Context {
     val declarationIndex = DeclarationIndexImpl(classSource)
