@@ -15,11 +15,11 @@ import kanva.analysis.buildCFG
 import org.junit.Test
 import org.junit.Assert
 import kanva.context.MethodContext
-import kanva.analysis.constracts.nulliltyToBoolean.NullBoolContractSpeculator
-import kanva.analysis.constracts.nulliltyToBoolean.Contract
-import kanva.analysis.constracts.nulliltyToBoolean.SingleContract
-import kanva.analysis.constracts.nulliltyToBoolean.ParamPath
-import kanva.analysis.constracts.nulliltyToBoolean.BoolResult
+import kanva.analysis.constracts.nullToBoolean.NullBoolContractSpeculator
+import kanva.analysis.constracts.nullToBoolean.Contract
+import kanva.analysis.constracts.nullToBoolean.SingleContract
+import kanva.analysis.constracts.nullToBoolean.ParamPath
+import kanva.analysis.constracts.nullToBoolean.BoolResult
 
 class NullityBooleanContractSpeculatorTest {
     val testClass = javaClass<data.Contracts>()
@@ -54,19 +54,19 @@ class NullityBooleanContractSpeculatorTest {
     Test
     fun isEmptyList() {
         val ctr = inferContract("isEmptyList", 0)
-        Assert.assertEquals(SingleContract(ParamPath.NULL_PATH, BoolResult.TRUE), ctr)
+        Assert.assertEquals(SingleContract(true, BoolResult.TRUE), ctr)
     }
 
     Test
     fun isNotEmptyList() {
         val ctr = inferContract("isNotEmptyList", 0)
-        Assert.assertEquals(SingleContract(ParamPath.NULL_PATH, BoolResult.FALSE), ctr)
+        Assert.assertEquals(SingleContract(true, BoolResult.FALSE), ctr)
     }
 
     Test
     fun isTraversable() {
         val ctr = inferContract("isNotEmptyList", 0)
-        Assert.assertEquals(SingleContract(ParamPath.NULL_PATH, BoolResult.FALSE), ctr)
+        Assert.assertEquals(SingleContract(true, BoolResult.FALSE), ctr)
     }
 
     Test
@@ -78,6 +78,6 @@ class NullityBooleanContractSpeculatorTest {
     Test
     fun isArrayType() {
         val ctr = inferContract("isArrayType", 0)
-        Assert.assertEquals(SingleContract(ParamPath.NULL_PATH, BoolResult.FALSE), ctr)
+        Assert.assertEquals(SingleContract(true, BoolResult.FALSE), ctr)
     }
 }

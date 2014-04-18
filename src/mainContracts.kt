@@ -9,12 +9,12 @@ import kanva.context.Context
 import kanva.index.FileBasedClassSource
 import kanva.declarations.*
 import kanva.util.isPrimitive
-import kanva.analysis.constracts.nulliltyToBoolean.NullBoolContractSpeculator
+import kanva.analysis.constracts.nullToBoolean.NullBoolContractSpeculator
 import kanva.context.MethodContext
 import kanva.annotations.xml.toAnnotationKeyPrefix
-import kanva.analysis.constracts.nulliltyToBoolean.SingleContract
-import kanva.analysis.constracts.nulliltyToBoolean.ParamPath
-import kanva.analysis.constracts.nulliltyToBoolean.BoolResult
+import kanva.analysis.constracts.nullToBoolean.SingleContract
+import kanva.analysis.constracts.nullToBoolean.ParamPath
+import kanva.analysis.constracts.nullToBoolean.BoolResult
 
 fun main(args: Array<String>) {
     //val jarFile = File(args[0])
@@ -57,7 +57,7 @@ fun inferContracts(context: Context) {
 
 fun contractString(method: Method, contract: SingleContract, indices: List<Int>, paramIndex: Int): String =
         indices.map { when (it) {
-            paramIndex -> if (contract.path == ParamPath.NULL_PATH) "null" else "!null"
+            paramIndex -> "null"
             else -> "_"
         }}.makeString(", ", "@Contract(\"", " -> ${result(method, contract)}\")")
 

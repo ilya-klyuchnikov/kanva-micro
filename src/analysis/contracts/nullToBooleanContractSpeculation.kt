@@ -1,4 +1,4 @@
-package kanva.analysis.constracts.nulliltyToBoolean
+package kanva.analysis.constracts.nullToBoolean
 
 import org.objectweb.asm.Type
 import org.objectweb.asm.tree.analysis.BasicValue
@@ -46,56 +46,31 @@ enum class BoolResult {
 
 enum class ParamPath {
     NULL_PATH
-    NOTNULL_PATH
-    CONFLICT
 }
 
 trait Contract
-data class SingleContract(val path: ParamPath, val result: BoolResult) : Contract
+data class SingleContract(val nullTaken: Boolean, val result: BoolResult) : Contract
 data class CycledContract() : Contract
-data class ConflictContract(): Contract
+data class NoContract() : Contract
 
-fun combineContracts(contract1: Contract?,
-                     contract2: Contract?,
-                     paramPath: ParamPath?): Contract? {
+// We should consider that at least one null path was taken
+fun combineContracts(contract1: Contract, contract2: Contract): Contract {
     val result = when {
-        paramPath == null && (contract1 is ConflictContract || contract2 is ConflictContract) ->
-            ConflictContract()
-        paramPath != null -> {
-            if (contract1 == contract2) contract1 else ConflictContract()
-        }
+        contract1 is NoContract ->
+            contract1
+        contract2 is NoContract ->
+            contract2
         contract1 is CycledContract ->
             contract2
         contract2 is CycledContract ->
             contract1
-        contract1 == contract2 ->
-            contract1
+        contract1 is SingleContract && contract2 is SingleContract && contract1.result == contract2.result ->
+            SingleContract(contract1.nullTaken || contract2.nullTaken, contract1.result)
         else ->
-            null
+            NoContract()
     }
-    //println("$contract1 combine $contract2 -> $result")
     return result
 }
-
-fun combineContractsAtBranch(contract1: Contract?, contract2: Contract?): Contract? {
-    val result = when {
-        contract1 is CycledContract ->
-            contract2
-        contract2 is CycledContract ->
-            contract1
-        contract1 is SingleContract ->
-            contract1
-        contract2 is SingleContract ->
-            contract2
-        contract1 == contract2 ->
-            contract1
-        else ->
-            null
-    }
-    //println("$contract1 combineContractsAtBranch $contract2 -> $result")
-    return result
-}
-
 
 // interpreter which is aware of ParamValue and about BooleanConstants
 class ParamBoolInterpreter(): BasicInterpreter() {
@@ -139,8 +114,8 @@ class NullBoolContractSpeculator(val methodContext: MethodContext, val paramInde
                     val inferred = speculate(
                             Configuration(0, createStartFrame(method, methodNode, paramIndex)),
                             listOf(),
-                            null)
-                    if (inferred is SingleContract) {
+                            false)
+                    if (inferred is SingleContract && inferred.nullTaken) {
                         return inferred
                     } else {
                         return null
@@ -154,11 +129,7 @@ class NullBoolContractSpeculator(val methodContext: MethodContext, val paramInde
 
     var iterations = 0
 
-    fun speculate(
-            conf: Configuration,
-            history: List<Configuration>,
-            nullPath: ParamPath?
-    ): Contract? {
+    fun speculate(conf: Configuration, history: List<Configuration>, nullTaken: Boolean): Contract {
         if (iterations ++ > 1000) {
             throw TooManyIterationsException()
         }
@@ -176,49 +147,27 @@ class NullBoolContractSpeculator(val methodContext: MethodContext, val paramInde
             opCode.isNotVoidReturn() -> {
                 val returnValue = Frame(frame).pop()
                 when {
-                    returnValue is BooleanConstant && nullPath == ParamPath.CONFLICT ->
-                        ConflictContract()
-                    returnValue is BooleanConstant && nullPath is ParamPath -> {
-                        val result = SingleContract(nullPath, returnValue.toBoolResult())
-                        //println("!!! $result")
-                        result
-                    }
-                    else -> {
-                        //println("!!! null at $nullPath")
-                        null
-                    }
+                    returnValue is BooleanConstant ->
+                        SingleContract(nullTaken, returnValue.toBoolResult())
+                    else ->
+                        NoContract()
                 }
             }
             opCode.isReturn() -> {
-                //println("!!! null")
-                null
+                NoContract()
             }
             opCode.isThrow() ->
-                null
-            opCode == Opcodes.IFNONNULL && Frame(frame).pop() is ParamValue -> {
-                combineContractsAtBranch(
-                        speculate(nextConfs.first(), nextHistory, checkPaths(nullPath, ParamPath.NULL_PATH)),
-                        speculate(nextConfs.last(), nextHistory, checkPaths(nullPath, ParamPath.NOTNULL_PATH))
-                )
-            }
+                NoContract()
+            opCode == Opcodes.IFNONNULL && Frame(frame).pop() is ParamValue ->
+                speculate(nextConfs.first(), nextHistory, true)
             opCode == Opcodes.IFNULL && Frame(frame).pop() is ParamValue ->
-                combineContractsAtBranch(
-                        speculate(nextConfs.last(), nextHistory, checkPaths(nullPath, ParamPath.NULL_PATH)),
-                        speculate(nextConfs.first(), nextHistory, checkPaths(nullPath, ParamPath.NOTNULL_PATH))
-                )
+                speculate(nextConfs.last(), nextHistory, true)
             opCode == Opcodes.IFEQ && Frame(frame).pop() is InstanceOfCheckValue ->
-                combineContractsAtBranch(
-                        speculate(nextConfs.last(), nextHistory, checkPaths(nullPath, ParamPath.NULL_PATH)),
-                        speculate(nextConfs.first(), nextHistory, checkPaths(nullPath, ParamPath.NOTNULL_PATH))
-                )
+                speculate(nextConfs.last(), nextHistory, true)
             opCode == Opcodes.IFNE && Frame(frame).pop() is InstanceOfCheckValue ->
-                combineContractsAtBranch(
-                        speculate(nextConfs.first(), nextHistory, checkPaths(nullPath, ParamPath.NULL_PATH)),
-                        speculate(nextConfs.last(), nextHistory, checkPaths(nullPath, ParamPath.NOTNULL_PATH))
-                )
-            else -> {
-                nextConfs.map { speculate(it, nextHistory, nullPath) }.reduce { c1, c2 -> combineContracts(c1, c2, nullPath) }
-            }
+                speculate(nextConfs.first(), nextHistory, true)
+            else ->
+                nextConfs.map { speculate(it, nextHistory, nullTaken) }.reduce { c1, c2 -> combineContracts(c1, c2) }
         }
     }
 
@@ -233,11 +182,6 @@ class NullBoolContractSpeculator(val methodContext: MethodContext, val paramInde
             }
         }
     }
-}
-
-fun checkPaths(path1: ParamPath?, path2: ParamPath): ParamPath = when {
-    path1 == null || path1 == path2 -> path2
-    else -> ParamPath.CONFLICT
 }
 
 fun createStartFrame(
