@@ -38,6 +38,7 @@ enum class Result {
 class Configuration(val insnIndex: Int, val frame: Frame<BasicValue>)
 class TooManyIterationsException(): Exception()
 
+// todo - do not rely on unbounded call stack
 class NullParamSpeculator(val methodContext: MethodContext, val paramIndex: Int) {
     val method = methodContext.method
     val transitions = methodContext.cfg.transitions
