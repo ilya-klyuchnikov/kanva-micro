@@ -98,6 +98,8 @@ class ParamBoolInterpreter(): BasicInterpreter() {
 class Configuration(val insnIndex: Int, val frame: Frame<BasicValue>)
 class TooManyIterationsException(): Exception()
 
+/* naive implementation is of exponential complexity and relies on deep stack
+*/
 class NaiveNullBoolContractSpeculator(val methodContext: MethodContext, val paramIndex: Int) {
     val method = methodContext.method
     val transitions = methodContext.cfg.transitions
@@ -183,6 +185,151 @@ class NaiveNullBoolContractSpeculator(val methodContext: MethodContext, val para
             else ->
                 nextConfs.map { speculate(it, nextHistory, nullTaken) }.reduce { c1, c2 -> combineContracts(c1, c2) }
         }
+    }
+
+    fun execute(frame: Frame<BasicValue>, insnNode: AbstractInsnNode): Frame<BasicValue> {
+        return when (insnNode.getType()) {
+            AbstractInsnNode.LABEL, AbstractInsnNode.LINE, AbstractInsnNode.FRAME ->
+                frame
+            else -> {
+                val nextFrame = Frame(frame)
+                nextFrame.execute(insnNode, interpreter)
+                nextFrame
+            }
+        }
+    }
+}
+
+data class PendingState(val index: Int, val conf: Configuration, val history: List<Configuration>, val nullTaken: Boolean)
+data class PendingResult(val index: Int, val children: List<Int>)
+
+// this speculator doesn't rely on unbounded stack
+class StacklessNaiveNullBoolContractSpeculator(val methodContext: MethodContext, val paramIndex: Int) {
+    val method = methodContext.method
+    val transitions = methodContext.cfg.transitions
+    val exceptionTransitions = methodContext.cfg.exceptionTransitions
+    val methodNode = methodContext.methodNode
+    val interpreter = ParamBoolInterpreter()
+
+    fun inferContract(): SingleContract? {
+        when {
+            transitions.nodes.notEmpty ->
+                try {
+                    val inferred = speculate()
+                    if (inferred is SingleContract && inferred.nullTaken) {
+                        return inferred
+                    } else {
+                        return null
+                    }
+                } catch (e: TooManyIterationsException) {
+                    return null
+                }
+            else -> return null
+        }
+    }
+
+    var iterations = 0
+    var pendingIndex = 0
+
+    fun speculate(): Contract {
+
+        val startConfiguration = Configuration(0, createStartFrame(method, methodNode, paramIndex))
+        var state: PendingState? = PendingState(pendingIndex++, startConfiguration, listOf(), false)
+        val queue = linkedListOf<PendingState>()
+
+        val pendingResults = linkedListOf<PendingResult>()
+        val results = hashMapOf<Int, Contract>()
+
+        while (state != null) {
+            iterations++
+            if (iterations ++ > 1000) {
+                println("too many iterations: $method")
+                throw TooManyIterationsException()
+            }
+            val (index, conf, history, nullTaken) = state!!
+
+            val insnIndex = conf.insnIndex
+            val frame = conf.frame
+            val cfgNode = transitions.findNode(insnIndex)!!
+            val insnNode = methodNode.instructions[insnIndex]
+
+            // cycle
+            if (history.any { it.insnIndex == insnIndex && isInstanceOf(frame, it.frame) }) {
+                results[index] = CycledContract()
+                state = queue.poll()
+                continue
+            }
+
+            val nextFrame = execute(frame, insnNode)
+            val nextConfs = cfgNode.successors.map {(node: Node<Int>) ->
+                val nextInsnIndex = node.insnIndex
+                val excType = exceptionTransitions[insnIndex to nextInsnIndex]
+                val nextFrame1 =
+                        if (excType == null)
+                            nextFrame
+                        else {
+                            val handler = Frame(frame)
+                            handler.clearStack()
+                            handler.push(BasicValue(Type.getType(excType)))
+                            handler
+                        }
+                Configuration(nextInsnIndex, nextFrame1)
+            }
+            val nextHistory = history + conf
+            val opCode = insnNode.getOpcode()
+
+            when {
+                opCode.isNotVoidReturn() -> {
+                    val returnValue = Frame(frame).pop()
+                    when {
+                        returnValue is BooleanConstant ->
+                            results[index] = SingleContract(nullTaken, returnValue.toBoolResult())
+                        else ->
+                            return NoContract()
+                    }
+                }
+                // TODO - early return
+                opCode.isReturn() ->
+                    return NoContract()
+                opCode.isThrow() ->
+                    return NoContract()
+                opCode == Opcodes.IFNONNULL && Frame(frame).pop() is ParamValue -> {
+                    val nextState = PendingState(pendingIndex++, nextConfs.first(), nextHistory, true)
+                    pendingResults.push(PendingResult(index, listOf(nextState.index)))
+                    queue.addFirst(nextState)
+                }
+                opCode == Opcodes.IFNULL && Frame(frame).pop() is ParamValue -> {
+                    val nextState = PendingState(pendingIndex++, nextConfs.last(), nextHistory, true)
+                    pendingResults.push(PendingResult(index, listOf(nextState.index)))
+                    queue.addFirst(nextState)
+                }
+                opCode == Opcodes.IFEQ && Frame(frame).pop() is InstanceOfCheckValue -> {
+                    val nextState = PendingState(pendingIndex++, nextConfs.last(), nextHistory, true)
+                    pendingResults.push(PendingResult(index, listOf(nextState.index)))
+                    queue.addFirst(nextState)
+                }
+                opCode == Opcodes.IFNE && Frame(frame).pop() is InstanceOfCheckValue -> {
+                    val nextState = PendingState(pendingIndex++, nextConfs.first(), nextHistory, true)
+                    pendingResults.push(PendingResult(index, listOf(nextState.index)))
+                    queue.addFirst(nextState)
+                }
+                else -> {
+                    val nextStates = nextConfs.map { PendingState(pendingIndex++, it, nextHistory, nullTaken) }
+                    pendingResults.push(PendingResult(index, nextStates.map { it.index }))
+                    queue.addAll(0, nextStates)
+                }
+            }
+
+            state = queue.poll()
+        }
+
+        // combining results
+        for (pendingResult in pendingResults) {
+            val subResults = pendingResult.children.map { results[it]!! }
+            results[pendingResult.index] = subResults.reduce(::combineContracts)
+        }
+
+        return results[0]!!
     }
 
     fun execute(frame: Frame<BasicValue>, insnNode: AbstractInsnNode): Frame<BasicValue> {
