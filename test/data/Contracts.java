@@ -37,4 +37,16 @@ public class Contracts {
     public static boolean isArrayType(final Type type) {
         return type instanceof GenericArrayType || type instanceof Class<?> && ((Class<?>) type).isArray();
     }
+
+    public static boolean withCycle(int i, Object o) {
+        while (i < 10) {
+            i++;
+        }
+        if (o == null) {
+            return false;
+        } else {
+            return i > 123;
+        }
+
+    }
 }

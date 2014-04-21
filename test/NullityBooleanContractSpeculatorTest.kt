@@ -80,4 +80,12 @@ class NullityBooleanContractSpeculatorTest {
         val ctr = inferContract("isArrayType", 0)
         Assert.assertEquals(SingleContract(true, BoolResult.FALSE), ctr)
     }
+
+    Test
+    fun withCycle() {
+        val ctr = inferContract("withCycle", 1)
+        Assert.assertEquals(SingleContract(true, BoolResult.FALSE), ctr)
+    }
+
+
 }
