@@ -9,7 +9,7 @@ import kanva.context.Context
 import kanva.index.FileBasedClassSource
 import kanva.declarations.*
 import kanva.util.isPrimitive
-import kanva.analysis.constracts.nullToBoolean.NullBoolContractSpeculator
+import kanva.analysis.constracts.nullToBoolean.NaiveNullBoolContractSpeculator
 import kanva.context.MethodContext
 import kanva.annotations.xml.toAnnotationKeyPrefix
 import kanva.analysis.constracts.nullToBoolean.SingleContract
@@ -44,7 +44,7 @@ fun inferContracts(context: Context) {
                 continue
             }
             val methodContext = MethodContext(context, cfg, method, methodNode)
-            val contract = NullBoolContractSpeculator(methodContext, relPos).inferContract()
+            val contract = NaiveNullBoolContractSpeculator(methodContext, relPos).inferContract()
             if (contract != null) {
                 contracts ++
                 println("${method.toAnnotationKeyPrefix()}\n   ${contractString(method, contract, indices, i)}\n")

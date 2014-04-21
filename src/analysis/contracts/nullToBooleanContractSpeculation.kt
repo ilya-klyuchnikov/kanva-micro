@@ -7,16 +7,13 @@ import org.objectweb.asm.tree.AbstractInsnNode
 import org.objectweb.asm.Opcodes.*
 import org.objectweb.asm.tree.TypeInsnNode
 import org.objectweb.asm.tree.analysis.Frame
-import kanva.context.MethodContext
-import kanva.graphs.successors
-import kanva.util.insnIndex
-import kanva.util.isThrow
-import org.objectweb.asm.Opcodes
-import kanva.declarations.Method
 import org.objectweb.asm.tree.MethodNode
-import kanva.declarations.isStatic
-import kanva.util.isNotVoidReturn
-import kanva.util.isReturn
+
+import org.objectweb.asm.Opcodes
+import kanva.context.MethodContext
+import kanva.declarations.*
+import kanva.util.*
+import kanva.graphs.*
 
 class ParamValue(tp: Type?) : BasicValue(tp) {
     override fun hashCode() = 1
@@ -101,7 +98,7 @@ class ParamBoolInterpreter(): BasicInterpreter() {
 class Configuration(val insnIndex: Int, val frame: Frame<BasicValue>)
 class TooManyIterationsException(): Exception()
 
-class NullBoolContractSpeculator(val methodContext: MethodContext, val paramIndex: Int) {
+class NaiveNullBoolContractSpeculator(val methodContext: MethodContext, val paramIndex: Int) {
     val method = methodContext.method
     val transitions = methodContext.cfg.transitions
     val exceptionTransitions = methodContext.cfg.exceptionTransitions
@@ -138,8 +135,12 @@ class NullBoolContractSpeculator(val methodContext: MethodContext, val paramInde
         val frame = conf.frame
         val cfgNode = transitions.findNode(insnIndex)!!
         val insnNode = methodNode.instructions[insnIndex]
+
+        if (history.any{it.insnIndex == insnIndex && isInstanceOf(frame, it.frame)})
+            return CycledContract()
+
         val nextFrame = execute(frame, insnNode)
-        val nextConfs = cfgNode.successors.map { node ->
+        val nextConfs = cfgNode.successors.map { (node: Node<Int>) ->
             val nextInsnIndex = node.insnIndex
             val excType = exceptionTransitions[insnIndex to nextInsnIndex]
             val nextFrame1 =

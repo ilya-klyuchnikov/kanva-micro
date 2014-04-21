@@ -15,7 +15,7 @@ import kanva.analysis.buildCFG
 import org.junit.Test
 import org.junit.Assert
 import kanva.context.MethodContext
-import kanva.analysis.constracts.nullToBoolean.NullBoolContractSpeculator
+import kanva.analysis.constracts.nullToBoolean.NaiveNullBoolContractSpeculator
 import kanva.analysis.constracts.nullToBoolean.Contract
 import kanva.analysis.constracts.nullToBoolean.SingleContract
 import kanva.analysis.constracts.nullToBoolean.ParamPath
@@ -48,7 +48,7 @@ class NullityBooleanContractSpeculatorTest {
 
         val context = Context(object: ClassSource {override fun forEach(body: (ClassReader) -> Unit) {}}, listOf())
         val methodContext = MethodContext(context, buildCFG(method!!, methodNode!!), method!!, methodNode!!)
-        return NullBoolContractSpeculator(methodContext, i).inferContract()
+        return NaiveNullBoolContractSpeculator(methodContext, i).inferContract()
     }
 
     Test
