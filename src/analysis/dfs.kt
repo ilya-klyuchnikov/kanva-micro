@@ -8,6 +8,7 @@ data class MarkScanned(val node: Int) : Action
 data class ExamineEdge(val from: Int, val to: Int) : Action
 
 data class DfsResult(
+        val insnSize: Int,
         val graph: Graph<Int>,
         val dfn: Array<Int>,
         val tree: Set<Pair<Int, Int>>,
@@ -17,7 +18,7 @@ data class DfsResult(
         val cross: Set<Pair<Int, Int>>
 ) {
     // number of descendants in tree
-    val nd = Array<Int>(graph.nodes.size){1};
+    val nd = Array<Int>(insnSize){1};
     val antiTree = hashMapOf<Int, Int>();
 
     {
@@ -49,15 +50,15 @@ private class TestBuilder: GraphBuilder<Int, Int, Graph<Int>>(true) {
 
 // modification of 11.14
 // there may be rare cases when some instructions are absense in
-fun dfs(graph: Graph<Int>): DfsResult {
+fun dfs(graph: Graph<Int>, insnSize: Int): DfsResult {
     val tree = hashSetOf<Pair<Int, Int>>()
     val forward = hashSetOf<Pair<Int, Int>>()
     val back = hashSetOf<Pair<Int, Int>>()
     val cross = hashSetOf<Pair<Int, Int>>()
 
-    val marked = Array<Boolean>(graph.nodes.size) { false }
-    val scanned = Array<Boolean>(graph.nodes.size) { false }
-    val dfn = Array<Int>(graph.nodes.size) { 0 }
+    val marked = Array<Boolean>(insnSize) { false }
+    val scanned = Array<Boolean>(insnSize) { false }
+    val dfn = Array<Int>(insnSize) { 0 }
 
     val stack = linkedListOf<Action>()
 
@@ -68,7 +69,7 @@ fun dfs(graph: Graph<Int>): DfsResult {
     marked[0] = true
     dfn[0] = ++i
     while (stack.notEmpty) {
-        val action: Action = stack.pop()!!
+        val action: Action = stack.pop()
         when (action) {
             is MarkScanned -> {
                 scanned[action.node] = true
@@ -95,16 +96,16 @@ fun dfs(graph: Graph<Int>): DfsResult {
         }
     }
 
-    return DfsResult(graph, dfn, tree, forward, back, cross)
+    return DfsResult(insnSize, graph, dfn, tree, forward, back, cross)
 }
 
-fun reducible1(graph: Graph<Int>): Boolean {
-    return reduce(dfs(graph))
+fun reducible1(graph: Graph<Int>, size: Int): Boolean {
+    return reduce(dfs(graph, size))
 }
 
 private fun reduce(dfs: DfsResult): Boolean {
     // initialization
-    val size = dfs.graph.nodes.size
+    val size = dfs.insnSize
 
     val cycles2v = Array<HashSet<Int>>(size) {HashSet()}
     val forwards2v = Array<HashSet<Int>>(size) {HashSet()}
@@ -135,7 +136,7 @@ private fun reduce(dfs: DfsResult): Boolean {
         crosses2v[to].add(from)
         //all2v[to].add(from)
     }
-    for (w in (dfs.graph.nodes.size - 1) downTo 0) {
+    for (w in dfs.graph.nodes.map{it.data}.sort().reverse()) {
         val p = hashSetOf<Int>()
         for (from in cycles2v[w]) {
             p.add(find[from]!!)
@@ -182,8 +183,8 @@ fun test1() {
 
     val graph = builder.graph
 
-    println(dfs(graph))
-    println(reducible1(graph))
+    println(dfs(graph, graph.nodes.size))
+    println(reducible1(graph, graph.nodes.size))
 }
 
 fun test2() {
@@ -207,8 +208,8 @@ fun test2() {
 
     val graph = builder.graph
 
-    println(dfs(graph))
-    println(reducible1(graph))
+    println(dfs(graph, graph.nodes.size))
+    println(reducible1(graph, graph.nodes.size))
 }
 
 fun test3() {
@@ -224,6 +225,6 @@ fun test3() {
 
     val graph = builder.graph
 
-    println(dfs(graph))
-    println(reducible1(graph))
+    println(dfs(graph, graph.nodes.size))
+    println(reducible1(graph, graph.nodes.size))
 }

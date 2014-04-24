@@ -111,7 +111,7 @@ fun checkRed(context: Context) {
             try {
 
                 //val xx = reducible(graph)
-                val xx = reducible1(cfg.transitions)
+                val xx = reducible1(cfg.transitions, methodNode.instructions.size())
                 if (!xx) {
                     println(method)
                     println(graph1.toList().sortBy { it.first })
